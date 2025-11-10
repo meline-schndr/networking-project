@@ -1,3 +1,4 @@
+![Project Illustration](/doc/structure.jpg)
 # Network Project - Pizzeria Management
 
 A Python client-server application for validating and managing pizza orders, developed as part of the "Introduction to Networks" (PEI-A A2) university project.
