@@ -2,12 +2,20 @@ import psycopg2
 from psycopg2 import sql
 
 class Database:
+    """
+    Classe base de données qui nous permet de récupérer tous les clients et les types de pizza.
+    TODO: Ajouter une méthode pour récupérer la table de production
+    """
 
 
     _ALLOWED_PIZZA_COLUMNS = ["Nom", "Taille", "Composition", "TPsProd", "Prix"]
     _ALLOWED_CLIENT_COLUMNS = ["ID", "Distance"]
 
-    def __init__(self, dbname='UE_ENS_PROJET', user='pguser', password='pguser', host='localhost', port='5432'):
+    def __init__(self, dbname: str = 'UE_ENS_PROJET', user: str = 'pguser', password: str = 'pguser', host: str = 'localhost', port: str = '5432') -> None:
+        """
+        Constructeur de la classe, par défaut, se connecte à une machine en local qui contient les bases de données.
+        TODO: Implémenter 'dotenv' (library Python pour masquer mot de passe)
+        """
         try:
             self.conn = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
             self.cur = self.conn.cursor()
@@ -17,18 +25,21 @@ class Database:
             self.conn = None
             self.cur = None
 
-    def __del__(self):
+    def __del__(self) -> None:
+        """
+        Méthode pour se déconnecter du serveur des bases de données.
+        """
         if self.cur: self.cur.close()
         if self.conn:
             self.conn.close()
             print("[DATABASE] > INFO: Connexion à la BDD fermée.")
 
-    def get_clients_table(self):
+    def get_clients_table(self) -> dict[int] | dict[None]:
         """
-        RÉCUPÈRE LES CLIENTS.
-        On garde cette fonction simple car son format de retour
-        (dict {ID: Distance}) est très spécifique pour l'app 'faisabilite'.
-        La généraliser la rendrait inutilisable pour udp.py.
+        Méthode pour récupérer la BDD Client.
+
+        -> Retourne : dict{'ID client': distance_client} 
+
         """
         if not self.cur: return {}
         
@@ -38,13 +49,17 @@ class Database:
             client_dicts[f"{ID}"] = Distance
         return client_dicts
 
-    def get_pizzas_table(self, *columns_to_fetch):
+    def get_pizzas_table(self, *columns_to_fetch: tuple[str]) -> list[dict] | list[None]:
         """
-        Récupère la table des pizzas sous forme de liste de dictionnaires.
+        Méthode pour récupérer la table des pizzas.
         
         - Si aucun argument n'est donné, prend toutes les colonnes.
         - Si des arguments sont donnés (ex: "Nom", "Taille"), 
           prend seulement ces colonnes.
+
+        -> Retourne : liste de dictionnaire définissant chaque pizza (Nom, Taille, etc.)
+                
+        TODO: Ajouter documentation sur cette méthode car peu instinctive
         """
         if not self.cur: return []
 

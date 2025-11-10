@@ -1,8 +1,13 @@
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR
 
 class BroadCastReceiver:
-    
-    def __init__(self, port, msg_len=8192, timeout = None):
+    """
+    Classe récepteur Broadcast UDP qui nous permet de recevoir les commandes de pizzas.
+    """
+    def __init__(self, port: int, msg_len: int = 8192, timeout:int = None) -> None:
+        """
+        Constructeur de la classe, nécessite forcément un port d'écoute, autre arguments optionnels.
+        """
         self.sock = socket(AF_INET, SOCK_DGRAM)
         self.sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         if timeout: self.sock.settimeout(timeout)
@@ -12,7 +17,10 @@ class BroadCastReceiver:
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def __next__(self) -> tuple[str, any]:
+        """
+        Méthode pour récupérer nouvelle commande.
+        """
         try:
             data, addr = self.sock.recvfrom(self.msg_len)
             return data.decode(), addr
@@ -24,7 +32,13 @@ class BroadCastReceiver:
         return self
 
     def __del__(self):
+        """
+        Méthode pour arrêter l'écouter UDP.
+        """
         self.sock.close()
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Méthode pour arrêter l'écouter UDP.
+        """
         self.sock.close()
