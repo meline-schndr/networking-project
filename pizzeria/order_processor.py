@@ -16,6 +16,8 @@ def _faisabilite(client_id: int, pizza_name: str, pizza_size: str, quantity: int
     - [list] pizza_list     : Liste des propriétés des pizzas               (pour récupérer le temps de production de chaque pizza)
 
     -> Retourne un booléen qui indique si la commande peut être traitée ou pas. (Temps de prod + Livraison > Heure souhaitée)
+
+    TODO: Ajouter de la logique pour le traitement des commandes en usine.
     """
 
     now = datetime.now() # Heure de maintenant
