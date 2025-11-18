@@ -1,75 +1,57 @@
-from .database import Database
-from .network import BroadCastReceiver
-from datetime import datetime, time, timedelta
+from .classes.order import Order
+from .classes.database import Database
+from .classes.network import BroadCastReceiver
+from .classes.client import Client
+from .classes.pizza import Pizza
+from datetime import timedelta, datetime
 
-def _faisabilite(client_id: int, pizza_name: str, pizza_size: str, quantity: int, delivery_time: str, clients_table: dict, pizza_list: list[dict]) -> bool:
+def _faisabilite(order: Order, clients_table: list[Client], pizza_list: list[Pizza]) -> bool:
     """
     Fonction pour déterminer si le temps pour produire les pizzas et les livrer est inférieur à l'heure de livraison désirée.
 
     Paramètres : 
-    - [int]  client_id      : ID du client qui a commandé
-    - [str]  pizza_name     : Nom de la pizza commandée
-    - [str]  pizza_size     : Taille de la pizza commandée                  (influence le temps de production)
-    - [int]  quantity       : Quantité de pizzas commandées                 (multiplie le temps de production)
-    - [str]  delivery_time  : Heure de livraison souhaitée par le client
-    - [dict] clients_table  : Tableau des clients de la pizzeria            (pour récupérer la distance/temps de livraison)
-    - [list] pizza_list     : Liste des propriétés des pizzas               (pour récupérer le temps de production de chaque pizza)
+    - Order        order          : Commande
+    - list[Client] clients_table  : Tableau des clients de la pizzeria            (pour récupérer la distance/temps de livraison)
+    - list[Pizza]  pizza_list     : Liste des propriétés des pizzas               (pour récupérer le temps de production de chaque pizza)
 
     -> Retourne un booléen qui indique si la commande peut être traitée ou pas. (Temps de prod + Livraison > Heure souhaitée)
 
     TODO: Ajouter de la logique pour le traitement des commandes en usine.
     """
 
-    now = datetime.now() # Heure de maintenant
-    try:
-        # Calcul du temps à disposition pour la prod et la livraison (heure souhaitée - heure actuelle = temps maximal autorisé)
-        new_time = delivery_time.split(":")
-        target_time = time(int(new_time[0]), int(new_time[1]), 0)
-        future_time = datetime.combine(now.date(), target_time)
-        
-        # Si la commande arrive après minuit
-        if future_time < now:
-            future_time += timedelta(days=1)
-
-        # Temps maximal autorisé pour prod + livraison
-        duration = future_time - now
-        
-    except ValueError:
-        # Traitement de l'erreur
-        print(f"--- COMMANDE REFUSEE (ID {client_id}) ---")
-        print(f"Format d'heure invalide: {delivery_time}")
-        print("----------------------------------\n")
-        return
-
     # Recherche du temps de prod de la pizza
     for pizza in pizza_list:
-        if pizza["Nom"] == pizza_name and pizza["Taille"] == pizza_size:
-            production_time = pizza["TPsProd"]
+        if pizza.name == order.pizza_name and pizza.size == order.pizza_size:
+            production_time = pizza.production_time
             break
     
     # (Purement préventif) Vérifie si le client existe
-    client_key = f"{client_id}"
-    if client_key not in clients_table:
-        print(f"\n--- COMMANDE REFUSEE ---")
-        print(f"Le client ID {client_id} est inconnu.")
-        print("--------------------------\n")
-        return
-    
-    distance_client = clients_table[client_key]
 
-    # Calcul de la faisabilité de la commande
-    faisabilite = timedelta(minutes=distance_client+production_time*quantity)<duration
+    for client in clients_table:
+        if order.client_id == client.client_id:
+            # Calcul de la faisabilité de la commande
+            duration = order.get_time_before_delivery()
+            if duration:
+                total_prod_time = client.client_distance + production_time * order.quantity
+                faisabilite = timedelta(minutes = total_prod_time) < duration
 
-    # Affichage dans la console de la commande
-    print("\n--- NOUVELLE COMMANDE ANALYSEE ---")
-    print("Client habite à", distance_client, "minutes.\
-        \nTemps de préparation de commande :", production_time*quantity, "minutes. \
-        \nHeure de livraison souhaité :", target_time, f"(dans {duration} minutes).",
-        "\nFaisabilité :", faisabilite)
-    print("----------------------------------\n")
+                # Affichage dans la console de la commande
+                print("\n--- NOUVELLE COMMANDE ANALYSEE ---")
+                print("Temps de libraison               :", client.client_distance, "minutes.\
+                     \nTemps de préparation de commande :", production_time * order.quantity, "minutes. \
+                     \nTemps total de préparation       :", total_prod_time, "minutes.\
+                     \nHeure de livraison souhaité      :", f"(dans {int(duration.total_seconds()//60)} minutes).",
+                     "\nFaisabilité :", faisabilite)
+                print("----------------------------------\n")
 
-    # Renvoie faisabilité
-    return faisabilite
+                # Renvoie faisabilité
+                return faisabilite
+        
+        
+    print(f"\n--- COMMANDE REFUSEE ---")
+    print(f"Le client ID {client.client_id} est inconnu.")
+    print("--------------------------\n")
+    return
 
 
 def start_processing():
@@ -81,11 +63,12 @@ def start_processing():
     # Connexion aux bases de données
     print("[ORDER] > INFO: Initialisation de la connexion BDD...")
     db = Database() # Classe définie dans database.py
-    clients_table = db.get_clients_table()
-    pizza_list = db.get_pizzas_table("Nom", "Taille", "Composition", "TPsProd", "Prix")
+    clients = db.get_table("Client")
+    pizzas = db.get_table("Pizza")
+    
     
     # Si pas d'entrées dans les tableaux récupérés
-    if not clients_table or not pizza_list:
+    if not clients or not pizzas:
         print("[ORDER] > ERROR: Données BDD non chargées. Arrêt du script.")
         return
 
@@ -100,19 +83,9 @@ def start_processing():
                 table = data.split(',')
                 
                 if len(table) == 6:
-                        commande = {
-                            "Date / Heure": table[0],
-                            "ID": int(table[1]),
-                            "Pizza": table[2],
-                            "Taille": table[3],
-                            "Quantité": int(table[4]),
-                            "Heure souhaitée": table[5],
-                        }
+                        order = Order(*table)
                         # On vérifie si la commande est faisable ou non
-                        _faisabilite(
-                            commande["ID"], commande["Pizza"], commande["Taille"], 
-                            commande["Quantité"], commande["Heure souhaitée"], clients_table, pizza_list
-                        )
+                        _faisabilite(order, clients, pizzas)
     except KeyboardInterrupt:
         # En cas d'arrêt forcé (Ctrl+C dans la console)
         print("\n[ORDER] > KILL: Arrêt du processeur de commandes.")
