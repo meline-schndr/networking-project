@@ -28,16 +28,16 @@ def _faisabilite(order: Order, clients_table: list[Client], pizza_list: list[Piz
     # (Purement préventif) Vérifie si le client existe
 
     for client in clients_table:
-        if order.client_id == client.client_id:
+        if order.client_id == client.id:
             # Calcul de la faisabilité de la commande
             duration = order.get_time_before_delivery()
             if duration:
-                total_prod_time = client.client_distance + production_time * order.quantity
+                total_prod_time = client.distance + production_time * order.quantity
                 faisabilite = timedelta(minutes = total_prod_time) < duration
 
                 # Affichage dans la console de la commande
                 print("\n--- NOUVELLE COMMANDE ANALYSEE ---")
-                print("Temps de libraison               :", client.client_distance, "minutes.\
+                print("Temps de libraison               :", client.distance, "minutes.\
                      \nTemps de préparation de commande :", production_time * order.quantity, "minutes. \
                      \nTemps total de préparation       :", total_prod_time, "minutes.\
                      \nHeure de livraison souhaité      :", f"(dans {int(duration.total_seconds()//60)} minutes).",
@@ -49,7 +49,7 @@ def _faisabilite(order: Order, clients_table: list[Client], pizza_list: list[Piz
         
         
     print(f"\n--- COMMANDE REFUSEE ---")
-    print(f"Le client ID {client.client_id} est inconnu.")
+    print(f"Le client ID {client.id} est inconnu.")
     print("--------------------------\n")
     return
 

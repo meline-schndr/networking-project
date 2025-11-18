@@ -2,6 +2,7 @@ import psycopg2
 
 from .client import Client
 from .pizza import Pizza
+from .production import ProductionStation
 from psycopg2 import sql
 
 class Database:
@@ -92,6 +93,9 @@ class Database:
                 elif table_name == "Pizza":
                     pizza = Pizza(row[0], row[1], row[2], row[3], row[4])
                     table_list.append(pizza)
+                elif table_name == "Production":
+                    prod_station = ProductionStation(row[0], row[1], row[2], row[3], row[4])
+                    table_list.append(prod_station)
 
             return table_list
             
