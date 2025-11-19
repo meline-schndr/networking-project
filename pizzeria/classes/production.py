@@ -95,12 +95,36 @@ class ProductionManager:
         Cherche le premier poste disponible qui peut prendre la commande et l'assigne.
         """
         
-        # Itérer sur les postes par ordre d'ID
         for station in sorted(self.stations, key=lambda s: s.id):
             if station.can_accept(pizza_name, pizza_size, quantity):
-                # Le poste est trouvé et peut prendre la commande !
                 production_end_time = station.assign_task(pizza_name, pizza_size, quantity, prod_time_per_pizza)
                 return station.id, production_end_time
         
-        # Aucun poste n'a pu prendre la commande
         return None, None
+    
+    def display_queues(self):
+        """Affiche l'état actuel de tous les postes de production dans la console."""
+        print("\n🏭 --- ÉTAT DES FILES D'ATTENTE (USINE) ---")
+        
+        for station in sorted(self.stations, key=lambda s: s.id):
+            used = station.get_used_capacity()
+            state = "✅ OUVERT" if station.is_available else "❌ FERMÉ"
+            
+            if station.max_capacity > 0:
+                percent = min(10, int((used / station.max_capacity) * 10))
+            else:
+                percent = 0
+            bar = "█" * percent + "░" * (10 - percent)
+            
+            print(f"Poste {station.id} [{state}] : [{bar}] Charge: {used}/{station.max_capacity}")
+            
+
+            if station.tasks_in_progress:
+                for i, (qty, end_time) in enumerate(station.tasks_in_progress, 1):
+                    remaining = end_time - datetime.now()
+                    mins_left = int(remaining.total_seconds() // 60)
+                    print(f"   ╚═ Tâche #{i} : {qty} pizzas (Fin : {end_time.strftime('%H:%M')} -> dans {mins_left} min)")
+            else:
+                print("   ╚═ (Libre)")
+        
+        print("----------------------------------------------\n")

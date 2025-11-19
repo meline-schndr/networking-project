@@ -2,6 +2,7 @@
 DROP TABLE IF EXISTS "Client";
 DROP TABLE IF EXISTS "Pizza";
 DROP TABLE IF EXISTS "Production";
+DROP TABLE IF EXISTS "Production";
 
 -- Création de la table Client
 CREATE TABLE "Client" (
@@ -27,6 +28,7 @@ CREATE TABLE "Production" (
     "Taille" TEXT,
     "Restriction" TEXT
 );
+
 
 -- Insertion des données Clients
 INSERT INTO "Client" ("ID", "Distance") VALUES
@@ -61,7 +63,9 @@ INSERT INTO "Pizza" ("Nom", "Taille", "Composition", "TPsProd", "Prix") VALUES
 
 -- Insertion des données Production
 INSERT INTO "Production" ("Poste", "Capacite", "Disponibilite", "Taille", "Restriction") VALUES
-(1, 30, TRUE, '', 'Veggie, Chevre'),
+(1, 30, TRUE,  '',  'Veggie, Chevre'),
+(2, 25, TRUE,  '',  ''),
+(3, 18, TRUE,  'G', 'Chevre, 4_Fromages'),
+(4, 20, TRUE,  'M', ''),
 (5, 27, FALSE, 'M', '---'),
-(3, 18, TRUE, 'G', 'Chevre, 4 Fromages'),
-(4, 15, FALSE, '', '');
+(6, 15, TRUE,  '',  '');
