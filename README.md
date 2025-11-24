@@ -1,16 +1,44 @@
-![Project Illustration](/doc/structure.jpg)
-# Network Project - Pizzeria Management
+# 🍕 Projet Réseau - Système de Gestion de Pizzeria
 
-A Python client-server application for validating and managing pizza orders, developed as part of the "Introduction to Networks" (PEI-A A2) university project.
+Ce projet est une application client-serveur Python conçue pour simuler et gérer un flux de commandes de pizzas en temps réel. Il intègre des protocoles réseaux (UDP/TCP), une base de données SQL, et surtout **une logique algorithmique avancée** pour l'optimisation de la production et des livraisons.
 
+![Architecture du Projet](doc/structure.jpg)
 
-## ✨ Features : The current system (Phase IV) is capable of:
-- Connecting to a PostgreSQL database.
-- Listening for customer orders broadcast over the network.
-- Validating the feasibility of each order based on production time and delivery time.
+## 🧠 Logique et Algorithmes Implémentés
 
+Le cœur du projet réside dans `order_processor.py` et `production.py`. Contrairement à un système "Premier arrivé, Premier servi" (FIFO) basique, ce système utilise des techniques d'ordonnancement temps réel pour maximiser le taux d'acceptation des commandes.
 
-## 🚀 Technologies Used and structure
+### 1. Gestion de Flux par Lots (Batch Processing)
+Plutôt que de traiter chaque paquet UDP individuellement dès sa réception, le système utilise un **buffer** intelligent.
+- **Logique** : Les commandes entrantes sont stockées temporairement dans un tampon.
+- **Déclencheur** : Le traitement du lot se lance si :
+  - Le tampon est plein (`BATCH_SIZE = 4` commandes).
+  - OU si le temps d'attente maximum est écoulé (`BUFFER_TIMEOUT = 12.0s`).
+- **Intérêt** : Cela permet d'accumuler plusieurs commandes pour pouvoir les **trier** et les prioriser avant de les assigner aux fours.
+
+### 2. Algorithme de Priorisation "Least Slack Time"
+Une fois un lot constitué, les commandes ne sont pas traitées dans l'ordre d'arrivée, mais selon leur **urgence réelle**.
+- **Calcul du Slack (Marge)** :
+  $$\text{Slack} = (\text{Heure Livraison Client}) - (\text{Heure Actuelle} + \text{Temps Prod} + \text{Temps Trajet})$$
+- **Tri** : Le système trie le lot par marge croissante. Les commandes ayant le moins de marge de manœuvre (les plus critiques) sont tentées en premier.
+- **Résultat** : On évite de bloquer un four pour une commande livrable dans 2h alors qu'une commande urgente risque d'être refusée.
+
+### 3. Planification de Production Parallèle
+La gestion des fours (`production.py`) va au-delà d'une simple disponibilité binaire (Libre/Occupé). Chaque poste de production gère une **capacité parallèle** (ex: un four peut cuire 30 pizzas simultanément).
+- **Vérification par Intervalle** : Lorsqu'une commande est testée, l'algorithme `calculate_earliest_start` vérifie si la capacité du four est suffisante **sur toute la durée de la cuisson**, en tenant compte des autres pizzas qui commencent ou finissent pendant cet intervalle.
+- **Contraintes** : Le système respecte également :
+  - Les restrictions d'ingrédients (ex: Allergies/Poste spécialisé).
+  - Les tailles supportées par le poste (M ou G).
+  - La disponibilité technique du poste.
+
+## 🚀 Fonctionnalités Principales
+
+* **Réception Broadcast UDP** : Écoute passive du flux de commandes sur le réseau local.
+* **Base de Données PostgreSQL** : Stockage persistant des clients, du catalogue de pizzas et de la configuration des postes de production.
+* **Validation de Faisabilité** : Rejet automatique si le temps de trajet + production dépasse l'heure souhaitée par le client.
+* **Interface Web (WIP)** : Serveur TCP/HTML pour visualiser les statistiques (en cours de développement).
+
+## 🛠️ Technologies utilisées et structure du code
 
 - Language: Python 3
 - Database: PostgreSQL 
@@ -19,10 +47,15 @@ A Python client-server application for validating and managing pizza orders, dev
 ```
 networking-project/
 ├── pizzeria/
-│   ├── __init__.py
-│   ├── database.py             # Database handler
-│   ├── network.py              # Order reciever
-│   └── order_processor.py      # Ordering system and management
+│   ├── classes
+|   |   ├── __init__.py
+|   |   ├── client.py
+|   |   ├── database.py
+|   |   ├── network.py
+|   |   ├── order.py
+|   |   ├── pizza.py
+|   |   └── production.py
+│   └── order_processor.py
 │
 ├── server/
 │   ├── __init__.py
@@ -36,41 +69,39 @@ networking-project/
 └── main.py
 ```
 
-## 📋 Prerequisites
-Before you begin, ensure you have the following installed:
+## 📋 Prérequis
 
-- Python 3.x
-- Docker (and the Docker service must be running).
-- The psycopg2 library for Python. You can install it via pip:
-    ```
+* **Python 3.x**
+* **Docker** (pour la base de données)
+* Bibliothèque `psycopg2-binary` :
+    ```bash
     pip install psycopg2-binary
     ```
 
-## ⚙️ Setup & Launch
-1. Launch the database
-    ```
-    chmod +x docker_restart.bash
-    # Run the script
+## ⚙️ Installation et Lancement
+
+1.  **Démarrer la Base de Données** :
+    ```bash
+    chmod +x server/docker_restart.bash
     ./server/docker_restart.bash
     ```
-    You should see logs from Docker and psql indicating the tables have been created.
+    *Cela lance un conteneur Docker PostgreSQL et injecte le schéma `init.sql`.*
 
-2. Launch the Order Simulator
-    ``` 
+2.  **Lancer le Simulateur de Commandes** (dans un terminal séparé) :
+    ```bash
     python server/order_broadcaster.py
-    # Use python3 if 'python' is not recognized
     ```
 
-3. Launch the Pizzeria Client (in a second terminal)
-    ```
+3.  **Lancer le Gestionnaire de Pizzeria** :
+    ```bash
     python main.py
-    # Also use python3 if 'python' is not recognized
     ```
+    
+## 📈 Pistes d'Amélioration
 
-
-## 📈 Future Development Steps
-- Add factory aspect and production system/limitations, we will have to optimize the ordering according to the factory's capacities.
-- Add a human-machine-interface / admin dashboard.
+- [ ] **IHM Web Avancée** : Connecter le module `tcp_html.py` aux données temps réel du `order_processor` pour un tableau de bord dynamique.
+- [*] **File d'Attente Globale** : Si tous les postes sont pleins, mettre la commande en attente plutôt que de la rejeter immédiatement.
+- [ ] **Gestion Multi-Pizzas** : Optimiser le regroupement pour qu'un client commandant 4 pizzas les reçoive toutes chaudes en même temps (synchronisation de fin de cuisson).
 - Implement advanced statistics (sales totals, ingredients used).
 - Implement a waiting queue for orders if all posts are busy but the order could be made later.
 - Optimize multi-pizza orders (ensure all 4 pizzas for a customer arrive hot at the same time).
