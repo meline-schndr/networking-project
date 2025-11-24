@@ -100,8 +100,5 @@ networking-project/
 ## 📈 Pistes d'Amélioration
 
 - [ ] **IHM Web Avancée** : Connecter le module `tcp_html.py` aux données temps réel du `order_processor` pour un tableau de bord dynamique.
-- [*] **File d'Attente Globale** : Si tous les postes sont pleins, mettre la commande en attente plutôt que de la rejeter immédiatement.
+- [x] **File d'Attente Globale** : Si tous les postes sont pleins, mettre la commande en attente plutôt que de la rejeter immédiatement.
 - [ ] **Gestion Multi-Pizzas** : Optimiser le regroupement pour qu'un client commandant 4 pizzas les reçoive toutes chaudes en même temps (synchronisation de fin de cuisson).
-- Implement advanced statistics (sales totals, ingredients used).
-- Implement a waiting queue for orders if all posts are busy but the order could be made later.
-- Optimize multi-pizza orders (ensure all 4 pizzas for a customer arrive hot at the same time).
