@@ -22,8 +22,8 @@ class BroadCastReceiver:
         Méthode pour récupérer nouvelle commande.
         """
         try:
-            data, addr = self.sock.recvfrom(self.msg_len)
-            return data.decode(), addr
+            data, _ = self.sock.recvfrom(self.msg_len)
+            return data.decode()
         except Exception as e:
             print("Got exception trying to recv %s" % e)
             raise StopIteration

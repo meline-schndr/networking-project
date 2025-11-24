@@ -63,9 +63,9 @@ INSERT INTO "Pizza" ("Nom", "Taille", "Composition", "TPsProd", "Prix") VALUES
 
 -- Insertion des données Production
 INSERT INTO "Production" ("Poste", "Capacite", "Disponibilite", "Taille", "Restriction") VALUES
-(1, 30, TRUE,  '',  'Veggie, Chevre'),
-(2, 25, TRUE,  '',  ''),
+(1, 23, TRUE,  '-',  'Veggie'),
+(2, 32, TRUE,  'M',  '-'),
 (3, 18, TRUE,  'G', 'Chevre, 4_Fromages'),
-(4, 20, TRUE,  'M', ''),
-(5, 27, FALSE, 'M', '---'),
-(6, 15, TRUE,  '',  '');
+(4, 15, FALSE, '-', '-'),
+(5, 22, TRUE,  'M', '-'),
+(6, 22, FALSE,  '-',  '-');
