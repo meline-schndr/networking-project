@@ -3,32 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pizzeria Control Center</title>
+    <title>Pizzeria Dashboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="dashboard">
-        <header>
-            <h1>Pizzeria</h1>
-            <div class="status-dot"></div>
-        </header>
+    <header>
+        <h1>Pizzeria Monitor</h1>
+        <div class="status-indicator" id="connection-dot"></div>
+    </header>
 
-        <main>
-            <div class="card accepted">
-                <h2>Commandes Validées</h2>
-                <div class="number" id="nb-accepted">--</div>
+    <main>
+        <div class="card">
+            <div class="card-title">Performance</div>
+            <div class="stats-container">
+                <div class="stat-item accepted">
+                    <span class="stat-number" id="nb-accepted">0</span>
+                    <span class="stat-label">Acceptées</span>
+                </div>
+                <div class="stat-item refused">
+                    <span class="stat-number" id="nb-refused">0</span>
+                    <span class="stat-label">Rejetées</span>
+                </div>
             </div>
+        </div>
 
-            <div class="card refused">
-                <h2>Commandes Refusées</h2>
-                <div class="number" id="nb-refused">--</div>
+        <div class="card" style="grid-row: span 2;">
+            <div class="card-title">Production en cours</div>
+            <div id="stations-container" class="stations-list">
+                <div style="text-align:center; opacity:0.5;">Chargement...</div>
             </div>
-        </main>
-        
-        <footer>
-            Système connecté • Mise à jour temps réel
-        </footer>
-    </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Notifications</div>
+            <div style="opacity: 0.5; font-size: 0.9rem;">
+                Aucune alerte critique pour le moment.
+            </div>
+        </div>
+    </main>
+
     <script src="script.js"></script>
 </body>
 </html>

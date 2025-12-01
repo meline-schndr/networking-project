@@ -1,17 +1,65 @@
-async function updateStats() {
+async function updateDashboard() {
     try {
         const response = await fetch('/api/stats');
         const data = await response.json();
 
-        document.getElementById('nb-accepted').innerText = data.accepted;
-        document.getElementById('nb-refused').innerText = data.refused;
-        
-        document.querySelector('.status-dot').style.background = '#a6e3a1';
+        document.getElementById('nb-accepted').innerText = data.stats.accepted;
+        document.getElementById('nb-refused').innerText = data.stats.refused;
+
+
+        document.getElementById('connection-dot').style.backgroundColor = '#a6e3a1';
+
+        const container = document.getElementById('stations-container');
+        container.innerHTML = '';
+
+        data.stations.sort((a, b) => a.id - b.id);
+
+        data.stations.forEach(station => {
+            const ratio = station.max_capacity > 0 ? (station.current_load / station.max_capacity) * 100 : 0;
+            const isFull = ratio >= 100;
+            const isDown = !station.available;
+
+            let badgesHtml = `<span class="badge">Taille ${station.size}</span>`;
+            
+            let restrText = "";
+            if (Array.isArray(station.restrictions)) {
+                restrText = station.restrictions.join(', ');
+            } else {
+                restrText = station.restrictions;
+            }
+
+            if (restrText && restrText !== '-' && restrText !== '') {
+                badgesHtml += `<span class="badge" style="border-color:var(--md-sys-color-error);">🚫 ${restrText}</span>`;
+            }
+
+            if (isDown) {
+                badgesHtml += `<span class="badge" style="background:var(--md-sys-color-error-container); color:var(--md-sys-color-error);">HS</span>`;
+            }
+
+            const html = `
+                <div class="station-row" style="opacity: ${isDown ? 0.5 : 1}">
+                    <div class="station-header">
+                        <span class="station-id">Poste #${station.id}</span>
+                        <div class="station-badges">${badgesHtml}</div>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: ${ratio}%; ${isFull ? 'background-color: var(--md-sys-color-error);' : ''}"></div>
+                    </div>
+                    
+                    <div class="load-text">
+                        ${station.current_load} / ${station.max_capacity} pizzas
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        });
+
     } catch (error) {
-        console.error("Erreur connexion serveur:", error);
-        document.querySelector('.status-dot').style.background = '#f38ba8';
+        console.error("Erreur Web:", error);
+        document.getElementById('connection-dot').style.backgroundColor = '#F2B8B5';
     }
 }
 
-setInterval(updateStats, 2000);
-updateStats();
+setInterval(updateDashboard, 1000);
+updateDashboard();

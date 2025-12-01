@@ -1,8 +1,10 @@
 import os
 import json
 import socket
+import select
+from datetime import datetime
 
-def run_web_server_thread(stats, host='localhost', port=10000):
+def run_web_server_thread(context, host='localhost', port=10000):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
     sock.bind((host, port))
@@ -28,10 +30,30 @@ def run_web_server_thread(stats, host='localhost', port=10000):
             
             if path == '/api/stats':
                 content_type = "application/json"
+                
                 data = {
-                    "accepted": stats.accepted_orders,
-                    "refused": stats.refused_orders
+                    "stats": {
+                        "accepted": context.stats.accepted_orders,
+                        "refused": context.stats.refused_orders
+                    },
+                    "stations": []
                 }
+
+                if context.prod_manager:
+                    now = datetime.now()
+                    for station in context.prod_manager.stations:
+                        load = station.get_load_at_time(now)
+                        restrictions = list(station.restrictions) if station.restrictions else []
+                        
+                        data["stations"].append({
+                            "id": station.id,
+                            "available": station.is_available,
+                            "max_capacity": station.max_capacity,
+                            "current_load": load,
+                            "size": station.supported_size,
+                            "restrictions": restrictions
+                        })
+
                 response_body = json.dumps(data).encode('utf-8')
 
             else:
@@ -48,7 +70,7 @@ def run_web_server_thread(stats, host='localhost', port=10000):
                     with open(file_path, 'rb') as f:
                         response_body = f.read()
                 except FileNotFoundError:
-                    # Gestion 404
+                    
                     response_header = "HTTP/1.1 404 Not Found\n\n"
                     conn.sendall(response_header.encode('utf-8'))
                     conn.close()
@@ -60,6 +82,6 @@ def run_web_server_thread(stats, host='localhost', port=10000):
             conn.close()
 
         except Exception as e:
-            print(f"[WEB] > Erreur: {e}")
+            print(f"[WEB] > ERROR: {e}")
             try: conn.close()
             except: pass

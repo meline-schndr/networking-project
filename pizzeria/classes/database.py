@@ -44,6 +44,10 @@ class Database:
             self.conn.close()
             print("[DATABASE] > INFO: Connexion à la BDD fermée.")
     
+    def update_table(self):
+        return
+
+
     def get_table(self, table_name: str, *columns_to_fetch: tuple [str]) -> list[Client] | list[Pizza] | list:
         """
         Méthode pour récupérer les colonnes d'une base de données.

@@ -63,7 +63,7 @@ def _check_feasibility(order: Order, client_map: dict[int, Client], pizza_list: 
     print(f"Client inconnu: {order.client_id}")
     return False
 
-def start_processing(stats) -> None:
+def start_processing(context) -> None:
     print("[ORDER] > INFO: Démarrage Système (Batching + Least Slack Time Sort)...")
     
     # Initialisation des Bases de Données
@@ -71,7 +71,10 @@ def start_processing(stats) -> None:
     clients_list = db.get_table("Client")
     pizzas = db.get_table("Pizza")
     prod_manager = ProductionManager(db)
-    
+
+    context.prod_manager = prod_manager
+    stats = context.stats
+
     # NOTE : Ici on simplifie la complexité, la liste des clients 
     #        est très longue, la parcourir à chaque commande est 
     #        gourmande en complexité donc on la cartographie.
