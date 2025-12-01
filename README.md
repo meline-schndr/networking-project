@@ -63,8 +63,12 @@ networking-project/
 │   ├── order_broadcaster.py    # Order generator
 │   └── dock_restart.bash       # Docker reloader
 │
-├── web/
-│   ├── tcp_html.py             # (Future) Admin dashboard
+├── web/                        # Admin dashboard
+│   ├── __init__.py
+│   ├── index.py
+│   ├── script.js
+│   ├── style.css
+│   └── tcp.py
 │
 └── main.py
 ```
