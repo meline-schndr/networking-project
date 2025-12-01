@@ -6,6 +6,23 @@ async function updateDashboard() {
         document.getElementById('nb-accepted').innerText = data.stats.accepted;
         document.getElementById('nb-refused').innerText = data.stats.refused;
 
+        const ings = data.stats.ingredients;
+        const total = ings.R + ings.J + ings.V + ings.B;
+
+        const updateBar = (key, val) => {
+            const elCount = document.getElementById(`count-${key}`);
+            const elBar = document.getElementById(`bar-${key}`);
+            
+            if(elCount) elCount.innerText = val;
+            
+            const pct = total > 0 ? (val / total) * 100 : 0;
+            if(elBar) elBar.style.width = `${pct}%`;
+        };
+
+        updateBar('R', ings.R);
+        updateBar('J', ings.J);
+        updateBar('V', ings.V);
+        updateBar('B', ings.B);
 
         document.getElementById('connection-dot').style.backgroundColor = '#a6e3a1';
 

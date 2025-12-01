@@ -32,7 +32,8 @@ def run_web_server_thread(context, host='localhost', port=10000):
                 data = {
                     "stats": {
                         "accepted": context.stats.accepted_orders,
-                        "refused": context.stats.refused_orders
+                        "refused": context.stats.refused_orders,
+                        "ingredients": context.stats.ingredients
                     },
                     "stations": []
                 }

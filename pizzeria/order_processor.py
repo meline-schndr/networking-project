@@ -107,6 +107,16 @@ def _check_feasibility(order: Order, client_map: dict[int, Client], pizza_list: 
     # Une fois qu'on a notre poste de prod assigné, on envoie la commande
     if station_id:
         stats.accepted_orders += 1
+            
+        # --- LOGIQUE DE COMPTAGE DES INGRÉDIENTS ---
+        # On parcourt chaque caractère de la composition de la pizza cible
+        # target_pizza.composition ressemble à "JVBJ,VBJV,VVJJ..."
+        for char in target_pizza.composition:
+            if char in stats.ingredients:
+                # On multiplie par la quantité commandée !
+                stats.ingredients[char] += (1 * order.quantity)
+
+        stats.accepted_orders += 1
         print("\n--- ✅ COMMANDE VALIDÉE ---")
         print(f"Client          : {order.client_id} (Dist: {client.distance}m)")
         print(f"Pizza           : {order.quantity}x {order.pizza_name} ({order.pizza_size})")
