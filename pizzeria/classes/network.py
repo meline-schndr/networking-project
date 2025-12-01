@@ -17,7 +17,7 @@ class BroadCastReceiver:
     def __iter__(self):
         return self
 
-    def __next__(self) -> tuple[str, any]:
+    def __next__(self):
         """
         Méthode pour récupérer nouvelle commande.
         """

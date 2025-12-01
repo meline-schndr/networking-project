@@ -8,12 +8,12 @@ class Pizza:
         self.price = price
 
     def __str__(self):
-        return ("\n+-------------------------------------------------+\n" \
-                 f"| Nom             | {self.name:29} |\n" \
-                 f"| Taille          | {self.size:29} |\n" \
-                 f"| Composition     | {self.composition} |\n" \
-                 f"| TPsProd         | {str(self.production_time):29} |\n" \
-                 f"| Prix            | {str(self.price):29} |\n" \
+        return ("\n+-------------------------------------------------+\n"
+                 f"| Nom             | {self.name:29} |\n"
+                 f"| Taille          | {self.size:29} |\n"
+                 f"| Composition     | {self.composition} |\n"
+                 f"| TPsProd         | {str(self.production_time):29} |\n"
+                 f"| Prix            | {str(self.price):29} |\n"
                  f"+-------------------------------------------------+\n")
         
 

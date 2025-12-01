@@ -174,7 +174,7 @@ class ProductionManager:
         print("\n🏭 --- ÉTAT DES FOURS ---")
         now = datetime.now()
         
-        for station in sorted(self.stations, key=lambda s: s.id):
+        for station in sorted(self.stations, key=lambda st: st.id):
             load = station.get_load_at_time(now)
             state = "✅" if station.is_available else "❌"
             

@@ -6,64 +6,134 @@ from .classes.network import BroadCastReceiver
 from .classes.client import Client
 from .classes.pizza import Pizza
 from .classes.production import ProductionManager
+from .classes.stats import SharedContext, PizzeriaStats
 
-def get_pizza_prod_time(pizza_name:  str, pizza_size: str, pizzas_list: list[Pizza]) -> int:
+def get_pizza_prod_time(pizza_name: str, pizza_size: str, pizzas_list: list[Pizza]) -> int:
     """Helper pour retrouver le temps de prod (INT) depuis la liste des pizzas."""
     for p in pizzas_list:
         if p.name == pizza_name and p.size == pizza_size:
             return int(p.production_time)
     return 999 # Valeur par défaut pénalisante
 
-def _check_feasibility(order: Order, client_map: dict[int, Client], pizza_list: list[Pizza], prod_manager: ProductionManager, stats) -> bool:
+def _check_feasibility(order: Order, client_map: dict[int, Client], pizza_list: list[Pizza], prod_manager: ProductionManager, stats: PizzeriaStats, db: Database) -> bool:
+    """
+    Fonction qui détermine la faisabilité d'une commande de pizzas.
+    1.  On vérifie que la pizza existe bien dans notre DB locale et que le client aussi
+
+        On a besoin que les deux existent pour récupérer le temps de livraison 
+        nécessaire ainsi que les infos de durée de prod de pizza
+
+    2.  On calcule le temps de production nécessaire à la pizza
+    3.  On compare le temps de prod à la deadline imposée
+
+    Soit la commande est réalisable ET livrable dans les temps 
+    ->  Commande acceptée (True)
+
+    Soit elle ne l'est pas
+    ->  Commande rejetée (False)
+
+    """
+
+    # Check que la pizza est bien dans notre DB (préventif pour empêcher erreur)
     target_pizza = None
     for pizza in pizza_list:
         if pizza.name == order.pizza_name and pizza.size == order.pizza_size:
             target_pizza = pizza
             break
+    # Si pizza non trouvée
     if not target_pizza: 
-        print(f"Pizza inconnue: {order.pizza_name}")
-        return False
-
-    # Récupération rapide du client via le dictionnaire
-    client = client_map.get(order.client_id)
-    if client:
-        time_before_delivery = order.get_time_before_delivery()
-        if not time_before_delivery: return False 
+        # Peut-être nouvelle pizza sortie par le gérant
+        # Donc on vérifie dans la DB centrale si on a une nouvelle pizza
+        print(f"[CACHE MISS] Recherche BDD pour Pizza: {order.pizza_name}...")
         
-        delivery_deadline = datetime.now() + time_before_delivery - timedelta(minutes=client.distance)
-        prod_manager.update_all_stations(datetime.now())
-
-        station_id, end_time = prod_manager.find_and_assign_station(
-            order.pizza_name, 
-            order.pizza_size, 
-            order.quantity, 
-            target_pizza.production_time,
-            delivery_deadline
-        )
-
-        if station_id:
-            stats.accepted_orders += 1
-            print("\n--- ✅ COMMANDE VALIDÉE ---")
-            print(f"Client          : {order.client_id} (Dist: {client.distance}m)")
-            print(f"Pizza           : {order.quantity}x {order.pizza_name} ({order.pizza_size})")
-            print(f"Poste           : #{station_id}")
-            print(f"Fin Production  : {end_time.strftime('%H:%M:%S')}")
-            print("---------------------------")
-            prod_manager.display_queues()
-            return True
+        new_pizza = db.get_entity("Pizza", ("Nom", order.pizza_name), ("Taille", order.pizza_size))
+        
+        # Si on a bien une nouvelle pizza on ajoute notre nouvelle pizza à la liste.
+        if new_pizza:
+            target_pizza = new_pizza
+            pizza_list.append(new_pizza)
         else:
-            stats.refused_orders += 1
+            # Si pas de nouvelle pizza -> Erreur, commande refusée
+            # FALLBACK
             print(f"\n--- ❌ COMMANDE REFUSÉE (ID {order.client_id}) ---")
-            print(f"Raison: Capacité insuffisante pour {order.pizza_name}")
-            print(f"A livrer avant : {order.delivery_time}")
-
+            print(f"Raison: La pizza {order.pizza_name} n'existe pas.")
             print("----------------------------------\n")
             return False
-    
-    print(f"Client inconnu: {order.client_id}")
-    return False
 
-def start_processing(context) -> None:
+    client = client_map.get(order.client_id)
+
+    # Si client inexistant dans notre DB
+    if not client:
+        # Peut-être nouveau client
+        # Donc on vérifie dans la DB centrale si on a un nouveau client
+        print(f"[CACHE MISS] Recherche BDD pour Client: {order.client_id}...")
+        
+        new_client = db.get_entity("Client", ("ID", order.client_id))
+        
+        # Si on a bien un nouveau client on ajoute notre nouveau client à la liste
+        if new_client:
+            client = new_client
+            client_map[client.id] = client
+            
+        else:
+            # Si pas de nouveau client -> Erreur, commande refusée
+            # FALLBACK
+            print(f"\n--- ❌ COMMANDE REFUSÉE (ID {order.client_id}) ---")
+            print(f"Raison: Le client {order.client_id} n'existe pas.")
+            print("----------------------------------\n")
+            return False
+
+    # Si on a bien un client existant (et une pizza)
+    # NOTE: On a besoin que les deux existent pour récupérer le temps de livraison 
+    #       nécessaire ainsi que les infos de durée de prod de pizza
+
+    # Calcul du temps disponible pour prod + livraison
+    time_before_delivery = order.get_time_before_delivery()
+    if not time_before_delivery: return False 
+    delivery_deadline = datetime.now() + time_before_delivery - timedelta(minutes=client.distance)
+    
+    # On met à jour les infos qu'on a sur chacun des postes de production
+    prod_manager.update_all_stations(datetime.now())
+
+    # On détermine le meilleur poste de production pour notre commande (best candidate)
+    station_id, end_time = prod_manager.find_and_assign_station(
+        order.pizza_name, 
+        order.pizza_size, 
+        order.quantity, 
+        target_pizza.production_time,
+        delivery_deadline
+    )
+
+    # Une fois qu'on a notre poste de prod assigné, on envoie la commande
+    if station_id:
+        stats.accepted_orders += 1
+        print("\n--- ✅ COMMANDE VALIDÉE ---")
+        print(f"Client          : {order.client_id} (Dist: {client.distance}m)")
+        print(f"Pizza           : {order.quantity}x {order.pizza_name} ({order.pizza_size})")
+        print(f"Poste           : #{station_id}")
+        print(f"Fin Production  : {end_time.strftime('%H:%M:%S')}")
+        print("---------------------------")
+        # prod_manager.display_queues()
+        return True
+    
+    # FALLBACK si deadline impossible à respecter
+    else:
+        stats.refused_orders += 1
+        print(f"\n--- ❌ COMMANDE REFUSÉE (ID {order.client_id}) ---")
+        print(f"Raison: Deadline impossible à respecter {order.pizza_name}")
+        print(f"A livrer avant : {order.delivery_time}")
+
+        print("----------------------------------\n")
+        return False
+
+def start_processing(context: SharedContext) -> None:
+    """"
+    Fonction principale qui est une boucle itérative.
+
+    ->  On récupère quelques commandes
+    ->  On compare l'urgence de chacune pour avoir la priorité (Least Slack Time)
+    ->  On envoie en prod les commandes
+    """
     print("[ORDER] > INFO: Démarrage Système (Batching + Least Slack Time Sort)...")
     
     # Initialisation des Bases de Données
@@ -72,6 +142,7 @@ def start_processing(context) -> None:
     pizzas = db.get_table("Pizza")
     prod_manager = ProductionManager(db)
 
+    # Initialisations des stats et infos IHM
     context.prod_manager = prod_manager
     stats = context.stats
 
@@ -88,6 +159,7 @@ def start_processing(context) -> None:
     order_buffer = []
     buffer_start_time = None
 
+    # On démarre l'écoute du serveur de commandes UDP
     with BroadCastReceiver(40100) as r:
         sock = r.sock 
         
@@ -103,7 +175,7 @@ def start_processing(context) -> None:
                 if order_buffer and buffer_start_time:
                     elapsed = (datetime.now() - buffer_start_time).total_seconds()
                     remaining = BUFFER_TIMEOUT - elapsed
-                    current_select_timeout = max(0, remaining) # Si négatif, on met 0 (non-bloquant)
+                    current_select_timeout = max(0, int(remaining)) # Si négatif, on met 0 (non-bloquant)
                 else:
                     current_select_timeout = None
 
@@ -136,14 +208,14 @@ def start_processing(context) -> None:
                     if (datetime.now() - buffer_start_time).total_seconds() >= BUFFER_TIMEOUT:
                         is_timeout = True
 
-                # 5. Traitement du lot si nécessaire
+                # 5. Traitement du lot (comparaison des Slack (Urgences))
                 if order_buffer and (is_batch_full or is_timeout):
                     trigger = "TAILLE ATTEINTE" if is_batch_full else f"TIMEOUT ({BUFFER_TIMEOUT}s)"
                     print(f"\n[OPTIMISATION] > Tri Intelligent déclenché par : {trigger}")
                     
                     def calculate_slack(o: Order) -> timedelta:
                         """
-                        Fonction qui détermine l'urgence d'une commande :
+                        Fonction qui détermine l'urgence (Slackà d'une commande :
                         Une pizza livrée en 1h qui a une grosse durée de 
                         livraison sera traitée AVANT qu'une pizza à livrer 
                         dans 30min mais qui n'a que 2min de route.
@@ -167,14 +239,15 @@ def start_processing(context) -> None:
                     # On trie par marge croissante (les plus tendus en premier)
                     order_buffer.sort(key=calculate_slack)
 
-                    # Exécution
+                    # Exécution, on check la faisabilité dans l'ordre d'importance
                     for sorted_order in order_buffer:
-                        _check_feasibility(sorted_order, client_map, pizzas, prod_manager, stats)
+                        _check_feasibility(sorted_order, client_map, pizzas, prod_manager, stats, db)
 
                     # Reset du buffer
                     order_buffer.clear()
                     buffer_start_time = None
 
+            # FALLBACK si Ctrl+C ou crash fatal
             except (StopIteration, KeyboardInterrupt):
                 print("\n[ORDER] > KILL: Arrêt du processeur de commandes.")
                 break

@@ -1,7 +1,6 @@
 import os
 import json
 import socket
-import select
 from datetime import datetime
 
 def run_web_server_thread(context, host='localhost', port=10000):
@@ -23,7 +22,6 @@ def run_web_server_thread(context, host='localhost', port=10000):
             first_line = request.split('\n')[0]
             method, path, _ = first_line.split(' ')
 
-            response_header = ""
             response_body = b""
             content_type = "text/html"
 
@@ -83,5 +81,7 @@ def run_web_server_thread(context, host='localhost', port=10000):
 
         except Exception as e:
             print(f"[WEB] > ERROR: {e}")
-            try: conn.close()
-            except: pass
+            try:
+                conn.close()
+            except:
+                pass

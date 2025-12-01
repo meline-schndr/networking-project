@@ -1,10 +1,9 @@
 from datetime import datetime, time, timedelta
-from .pizza import Pizza
 
 
 class Order:
 
-    def __init__(self, order_time, client_id, pizza_name, pizza_size, quantity, delivery_time):
+    def __init__(self, order_time, client_id: int, pizza_name: str, pizza_size: str, quantity: int, delivery_time: str):
         self.time = order_time
         self.client_id = int(client_id)
         self.pizza_name = str(pizza_name)
@@ -15,7 +14,7 @@ class Order:
     
 
     def __str__(self):
-        return ("")
+        return ""
 
 
     def get_time_before_delivery(self):
@@ -23,6 +22,7 @@ class Order:
             now = datetime.now()
             delivery_date = datetime.combine(now.date(), self.delivery_time)
 
+            # Si Minuit dépassé
             if delivery_date < now:
                 delivery_date += timedelta(days=1)
 
@@ -31,7 +31,7 @@ class Order:
             return duration
         except ValueError:
             # Traitement de l'erreur
-            print(f"--- COMMANDE REFUSEE (ID {self.client_id}) ---")
-            print(f"Format d'heure invalide: {self.delivery_time}")
+            print(f"\n--- ❌ COMMANDE REFUSÉE (ID {self.client_id}) ---")
+            print(f"Raison : Format d'heure invalide: {self.delivery_time}")
             print("----------------------------------\n")
             return None
