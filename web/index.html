@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizzeria Control Center</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>Pizzeria</h1>
+            <div class="status-dot"></div>
+        </header>
+
+        <main>
+            <div class="card accepted">
+                <h2>Commandes Validées</h2>
+                <div class="number" id="nb-accepted">--</div>
+            </div>
+
+            <div class="card refused">
+                <h2>Commandes Refusées</h2>
+                <div class="number" id="nb-refused">--</div>
+            </div>
+        </main>
+        
+        <footer>
+            Système connecté • Mise à jour temps réel
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

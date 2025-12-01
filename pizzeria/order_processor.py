@@ -14,7 +14,7 @@ def get_pizza_prod_time(pizza_name:  str, pizza_size: str, pizzas_list: list[Piz
             return int(p.production_time)
     return 999 # Valeur par défaut pénalisante
 
-def _check_feasibility(order: Order, client_map: dict[int, Client], pizza_list: list[Pizza], prod_manager: ProductionManager) -> bool:
+def _check_feasibility(order: Order, client_map: dict[int, Client], pizza_list: list[Pizza], prod_manager: ProductionManager, stats) -> bool:
     target_pizza = None
     for pizza in pizza_list:
         if pizza.name == order.pizza_name and pizza.size == order.pizza_size:
@@ -42,6 +42,7 @@ def _check_feasibility(order: Order, client_map: dict[int, Client], pizza_list: 
         )
 
         if station_id:
+            stats.accepted_orders += 1
             print("\n--- ✅ COMMANDE VALIDÉE ---")
             print(f"Client          : {order.client_id} (Dist: {client.distance}m)")
             print(f"Pizza           : {order.quantity}x {order.pizza_name} ({order.pizza_size})")
@@ -51,6 +52,7 @@ def _check_feasibility(order: Order, client_map: dict[int, Client], pizza_list: 
             prod_manager.display_queues()
             return True
         else:
+            stats.refused_orders += 1
             print(f"\n--- ❌ COMMANDE REFUSÉE (ID {order.client_id}) ---")
             print(f"Raison: Capacité insuffisante pour {order.pizza_name}")
             print(f"A livrer avant : {order.delivery_time}")
@@ -61,7 +63,7 @@ def _check_feasibility(order: Order, client_map: dict[int, Client], pizza_list: 
     print(f"Client inconnu: {order.client_id}")
     return False
 
-def start_processing() -> None:
+def start_processing(stats) -> None:
     print("[ORDER] > INFO: Démarrage Système (Batching + Least Slack Time Sort)...")
     
     # Initialisation des Bases de Données
@@ -164,7 +166,7 @@ def start_processing() -> None:
 
                     # Exécution
                     for sorted_order in order_buffer:
-                        _check_feasibility(sorted_order, client_map, pizzas, prod_manager)
+                        _check_feasibility(sorted_order, client_map, pizzas, prod_manager, stats)
 
                     # Reset du buffer
                     order_buffer.clear()
