@@ -7,14 +7,14 @@ from .classes.client import Client
 from .classes.pizza import Pizza
 from .classes.production import ProductionManager
 
-def get_pizza_prod_time(pizza_name, pizza_size, pizzas_list: list[Pizza]) -> int:
+def get_pizza_prod_time(pizza_name:  str, pizza_size: str, pizzas_list: list[Pizza]) -> int:
     """Helper pour retrouver le temps de prod (INT) depuis la liste des pizzas."""
     for p in pizzas_list:
         if p.name == pizza_name and p.size == pizza_size:
             return int(p.production_time)
     return 999 # Valeur par défaut pénalisante
 
-def _check_feasibility(order: Order, client_map: dict, pizza_list: list[Pizza], prod_manager: ProductionManager) -> bool:
+def _check_feasibility(order: Order, client_map: dict[int, Client], pizza_list: list[Pizza], prod_manager: ProductionManager) -> bool:
     target_pizza = None
     for pizza in pizza_list:
         if pizza.name == order.pizza_name and pizza.size == order.pizza_size:
@@ -61,7 +61,7 @@ def _check_feasibility(order: Order, client_map: dict, pizza_list: list[Pizza], 
     print(f"Client inconnu: {order.client_id}")
     return False
 
-def start_processing():
+def start_processing() -> None:
     print("[ORDER] > INFO: Démarrage Système (Batching + Least Slack Time Sort)...")
     
     # Initialisation des Bases de Données

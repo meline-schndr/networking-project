@@ -35,6 +35,7 @@ class ProductionStation:
 
         # 2. Vérifier les pics de charge futurs pendant la cuisson
         for task_qty, task_start, task_end, _, _ in self.planning:
+            
             # Si une autre tâche commence PENDANT que la nôtre est en cours
             if start_t < task_start < end_t:
                 # On vérifie si ça passe à ce moment précis
@@ -43,7 +44,16 @@ class ProductionStation:
         return True
 
     def calculate_earliest_start(self, pizza_name: str, pizza_size: str, quantity: int, duration_minutes: int) -> Optional[datetime]:
-        """Trouve le créneau le plus tôt disponible pour une durée donnée."""
+        """
+        Méthode qui calcule le temps de départ de cuisson d'une pizza
+
+        1. Gestion des restrictions :
+           - Taille de Pizza autorisée
+           - Pizza non restreinte (alergies etc)
+           - Disponibilité du poste et capacité
+
+        2. Check chaque tâche du poste pour avoir le début de cuisson le plus rapide           
+        """
         # Si poste est désactivé
         if not self.is_available: return None
         # Si le poste interdit la pizza 
@@ -83,44 +93,80 @@ class ProductionStation:
 
 
 class ProductionManager:
+
+    """
+    Classe qui permet de gérer les commandes de Pizza et 
+    l'attribution des commandes aux différents postes de production.
+    """
+
     def __init__(self, db_instance):
+
+        # Liste des postes (objets Poste)
         self.stations: List[ProductionStation] = []
         self._load_stations(db_instance)
 
     def _load_stations(self, db):
+        """
+        Méthode de chargement des stations depuis la BDD de prod.
+        """
+        # Essaye de se connecter à la BDD
         try:
             self.stations = db.get_table("Production")
+
+            # Tri par ID des postes (avec du SQL, possibilité de ne pas recevoir la liste triée)
+            self.stations.sort(key=lambda s: s.id)
+
+        # En cas de non connexion à la BDD
         except Exception:
             self.stations = []
-        self.stations.sort(key=lambda s: s.id)
-        for station in self.stations:
-        
-            print(station )
 
     def update_all_stations(self, current_time: datetime) -> None:
         for station in self.stations:
             station.update(current_time)
 
     def find_and_assign_station(self, pizza_name: str, pizza_size: str, quantity: int, prod_time: int, delivery_deadline: datetime) -> Tuple[Optional[int], Optional[datetime]]:
+        """
+        Méthode qui implémente la logique pour déterminer le meilleure poste de Pizza.
+        
+        Boucle pour chacun des postes :
+        -> Calcule le temps à attendre avant que la cuisson démarre sur le poste X
+        -> Compare avec les différents temps d'attente de chaque poste
+        
+        Retourne l'ID du meilleur poste (best candidate) une fois trouvé ainsi que le temps du début de cuisson
+        
+        """
         best_station = None
         best_end_time = None
 
+        # Boucle pour parcourir chaque poste
         for station in self.stations:
+            
+            # Estimation temps d'attente avant démarrage cuisson sur le poste
             start_time = station.calculate_earliest_start(pizza_name, pizza_size, quantity, prod_time)
+
+            # Si on a un temps de démarrage (poste valide -> Non valide = pas bonne taille ou restriction)
             if start_time:
+
+                # Récupère le temps de fin de cussion
                 end_time = start_time + timedelta(minutes=prod_time)
                 
+                # Si fin de cuisson AVANT deadline de livraison
                 if end_time <= delivery_deadline:
+
+                    # Compare avec le meilleur temps enregistré au fil des intérations de boucler
                     if best_end_time is None or end_time < best_end_time:
                         best_end_time = end_time
+
+                        # Défini le meilleur poste
                         best_station = (station, start_time)
 
-
+        # Si on a un poste -> Retourne l'ID de poste + fin de cuisson
         if best_station:
             station_obj, start_t = best_station
             final_end = station_obj.assign_task(pizza_name, pizza_size, quantity, prod_time, start_t)
             return station_obj.id, final_end
 
+        # Fallback si pas de poste (théoriquement impossible)
         return None, None
 
     def display_queues(self):
