@@ -10,19 +10,6 @@ class Database:
     Classe base de données qui nous permet de récupérer tous les clients et les types de pizza.
     """
 
-    # Dictionnaire qui prend en clé le nom de la DB et en valeurs la liste des colonnes (propriétés)
-    # NOTE: Ici elle est fixe, donc si y'a une update de structure de DB c'est cooked 
-    #       Normalement cela ne devrait pas arriver mais dans le doute :
-    # TODO: Soit ask le prof, soit rendre ça dynamique en fetch les colonnes directement.
-    _ALLOWED_COLUMNS = {
-        "Client":       ["ID",      "Distance"],
-                        # int       # int
-        "Pizza":        ["Nom",     "Taille",       "Composition",      "TPsProd",  "Prix"],
-                        # str       # str           # str               # int       # int
-        "Production":   ["Poste",   "Capacite",     "Disponibilite",    "Taille",   "Restriction"]
-                        # int       # int           # bool              # str       # str
-    }
-
     def __init__(self, dbname: str = 'UE_ENS_PROJET', user: str = 'pguser', password: str = 'pguser', host: str = 'localhost', port: str = '5432') -> None:
         """
         Constructeur de la classe, par défaut, se connecte à une machine en local qui contient les bases de données.
@@ -32,7 +19,9 @@ class Database:
         try:
             self.conn = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
             self.cur = self.conn.cursor()
+            self._ALLOWED_COLUMNS = {}
             print("[DATABASE] > SUCCESS: Connexion à la BDD réussie.")
+            self.get_columns("Client", "Pizza", "Production")
 
         # FALLBACK d'erreur -> pas réussi à se connecter
         except psycopg2.OperationalError as e:
@@ -153,8 +142,34 @@ class Database:
                 pass # Si le rollback échoue, on ignore
             return None
 
+    def get_columns(self, *table_name: tuple[str]):
+        """
+        Méthode qui récupère les colonnes d'une ou plusieurs DB.
 
-    def get_table(self, table_name: str, *columns_to_fetch: tuple [str]) -> list[Client] | list[Pizza] | list:
+        """
+        try:
+            for name in table_name:
+                query = sql.SQL('SELECT * FROM "{table_name}" LIMIT 0').format(
+                        table_name = sql.SQL(name)
+                    )
+                self.cur.execute(query)
+
+                colnames = [desc[0] for desc in self.cur.description]
+
+                self._ALLOWED_COLUMNS[name] = colnames
+
+        except Exception as e:
+            print(f"[DATABASE] > WARN: Échec de l'introspection ({e}). Utilisation du schéma par défaut.")
+            self._ALLOWED_COLUMNS = {
+            "Client":       ["ID",      "Distance"],
+                            # int       # int
+            "Pizza":        ["Nom",     "Taille",       "Composition",      "TPsProd",  "Prix"],
+                            # str       # str           # str               # int       # int
+            "Production":   ["Poste",   "Capacite",     "Disponibilite",    "Taille",   "Restriction"]
+                            # int       # int           # bool              # str       # str
+            }
+
+    def get_table(self, table_name: str, *columns_to_fetch: tuple[str]) -> list[Client] | list[Pizza] | list:
         """
         Méthode pour récupérer les lignes d'une base de données.
         Gérée dynamiquement avec un *columns_to_fetch parce que c'est cool et ça évite

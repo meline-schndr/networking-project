@@ -8,7 +8,6 @@ class Order:
             self.timestamp = datetime.strptime(order_time, "%d/%m/%Y %H:%M:%S")
         except ValueError:
             self.timestamp = datetime.now()
-        print(self.timestamp, datetime.now())
         self.client_id = int(client_id)
         self.pizza_name = str(pizza_name)
         self.pizza_size = str(pizza_size)
