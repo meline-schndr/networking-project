@@ -18,5 +18,5 @@ if __name__ == "__main__":
         order_processor.start_processing(context)
         print("[MAIN] > SUCCESS: Script arrêté avec succès.")
     except KeyboardInterrupt:
-        print("\n[MAIN] > Arrêt demandé par l'utilisateur.")
+        print("\n[MAIN] > KILL: Arrêt demandé par l'utilisateur.")
         sys.exit(0)

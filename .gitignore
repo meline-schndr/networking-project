@@ -1,3 +1,5 @@
 .venv
 .env
 **/__pycache__/
+run.bash
+pizzas.txt

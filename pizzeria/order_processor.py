@@ -144,10 +144,10 @@ def start_processing(context: SharedContext) -> None:
     ->  On compare l'urgence de chacune pour avoir la priorité (Least Slack Time)
     ->  On envoie en prod les commandes
     """
-    print("[ORDER] > INFO: Démarrage Système (Batching + Least Slack Time Sort)...")
     
     # Initialisation des Bases de Données
     db = Database()
+    if (db.conn, db.cur) == (None, None): return
     clients_list = db.get_table("Client")
     pizzas = db.get_table("Pizza")
     prod_manager = ProductionManager(db)
@@ -171,6 +171,7 @@ def start_processing(context: SharedContext) -> None:
 
     # On démarre l'écoute du serveur de commandes UDP
     with BroadCastReceiver(40100) as r:
+        print("[ORDER] > INFO: En attente de commandes...")
         sock = r.sock 
         
         while True:
@@ -262,6 +263,6 @@ def start_processing(context: SharedContext) -> None:
                 print("\n[ORDER] > KILL: Arrêt du processeur de commandes.")
                 break
             except Exception as e:
-                print(f"[ORDER] > FATAL: Erreur boucle principale: {e}")
+                print(f"[ORDER] > FATAL: Erreur boucle principale: {e.args[0]}")
                 order_buffer.clear()
                 buffer_start_time = None

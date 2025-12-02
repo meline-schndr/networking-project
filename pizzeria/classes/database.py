@@ -36,7 +36,7 @@ class Database:
 
         # FALLBACK d'erreur -> pas réussi à se connecter
         except psycopg2.OperationalError as e:
-            print(f"[DATABASE] > ERROR: Impossible de se connecter à la BDD. {e}")
+            print(f"[DATABASE] > ERROR: {e.args[0].split("\n")[0]}")
             self.conn = None
             self.cur = None
 
