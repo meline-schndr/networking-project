@@ -41,7 +41,6 @@ La gestion des fours (`production.py`) va au-delà d'une simple disponibilité b
 ## 🛠️ Technologies utilisées et structure du code
 
 - Language: Python 3
-- Database: PostgreSQL 
 - Python Libraries: psycopg2 (DB connection), socket (UDP/TCP networking)
 
 ```
